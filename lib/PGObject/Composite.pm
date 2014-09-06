@@ -1,6 +1,6 @@
 package PGObject::Composite;
 
-use 5.006;
+use 5.008;
 use strict;
 use warnings FATAL => 'all';
 
@@ -62,11 +62,31 @@ Calls a mapped method with the current object as the argument named "self."
 This allows for stored procedurs to differentiate what is related to a related
 type and what is not.
 
-=cuty
+=cut
+
+my %default = (
+    funcschema => 'public',
+    funcprefix => '',
+    registry   => 'default',    
+);
+
+sub _build_args {
+    my ($self, $args) = @_;
+    my %args = (map {
+                      my $funcname = "_get_$_";
+                      eval { $self->can($funcname) } ?
+                         $_ => $self->$funcname() :
+                         $_ => $defaults($_);
+                } qw(funcschema dbh funcprefix registry typename typeschema)
+                , %$args);
+    return %args;
+}
 
 sub call_dbmethod {
     my $self = shift;
     my %args = @_;
+    my %args = _build_args($self, \%args);
+
 
 }
 
@@ -76,7 +96,16 @@ Maps to PGObject::call_procedure with appropriate defaults.
 
 =cut
 
+sub call_procedure {
+    my ($self) = shift @_;
+    my %args = @_;
+    my %args = _build_args($self, \%args);
 
+    croak 'No DB handle provided' unless $args{dbh};
+    my @rows = PGObject->call_procedure(%args);
+    return shift @rows unless wantarray;
+    return @rows;
+}
 
 =head1 INTERFACES TO OVERRIDE
 
