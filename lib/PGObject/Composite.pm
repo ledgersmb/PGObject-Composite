@@ -87,8 +87,16 @@ sub call_dbmethod {
     my %args = @_;
     my %args = _build_args($self, \%args);
 
-
-}
+    my $funcinfo = PGObject::function_info(
+               %args, (argtype1 => $args{typename}, 
+                      argschema => $args{typeschema}
+    );
+    my @dbargs = map { $name = $_->{name};
+                       $name =~ s/^in_//i;
+                       $name eq 'self'? $self : $args{args}->{$name} ;
+               } @{$funcinfo->{args}};
+    return PGObject::call_procedure(%args, ( args => \@dbargs ));
+} 
 
 =head2 call_procedure
 
@@ -111,11 +119,19 @@ sub call_procedure {
 
 =head2 _get_schema
 
+Defaults to public.  This is the type's schema
+
 =head2 _get_funcschema
+
+defaults to public.
 
 =head2 _get_typename
 
+The name of the composite type.  Must be set.
+
 =head2 _get_dbh
+
+The database connection to use.  Must be set.
 
 =head1 AUTHOR
 

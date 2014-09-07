@@ -16,7 +16,7 @@ before_install:
    - "cpanm DBD::Pg"
    - "cpanm Try::Tiny"
    - "cpanm PGObject"
-   - "cpanm Memoize"
+   - "cpanm PGObject::Type::Composite"
    - "cpanm Test::More"
    - "cpanm Devel::Cover::Report::Coveralls"
 script:
