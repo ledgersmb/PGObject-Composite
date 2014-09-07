@@ -91,10 +91,10 @@ sub call_dbmethod {
                %args, (argtype1 => $args{typename}, 
                       argschema => $args{typeschema}
     );
-    my @dbargs = map { $name = $_->{name};
+    my @dbargs = ($self, map { $name = $_->{name};
                        $name =~ s/^in_//i;
                        $name eq 'self'? $self : $args{args}->{$name} ;
-               } @{$funcinfo->{args}};
+               } @{$funcinfo->{args}});
     return PGObject::call_procedure(%args, ( args => \@dbargs ));
 } 
 
