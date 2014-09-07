@@ -14,11 +14,11 @@ PGObject::Composite - Composite Type Mapper for PGObject
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 =head1 SYNOPSIS
@@ -73,12 +73,12 @@ my %defaults = (
 
 sub _build_args {
     my ($self, $args) = @_;
-    my %args = (map {
+    my %args = ((map {
                       my $funcname = "_get_$_";
                       eval { $self->can($funcname) } ?
                          ($_ => $self->$funcname()) :
                          ($_ => $defaults{$_});
-                } qw(funcschema dbh funcprefix registry typename typeschema)
+                } qw(funcschema dbh funcprefix registry typename typeschema))
                 , %$args);
     return %args;
 }
@@ -92,11 +92,13 @@ sub call_dbmethod {
                %args, (argtype1 => $args{typename}, 
                       argschema => $args{typeschema})
     );
-    my @dbargs = ($self, map { my $name = $_->{name};
+    my @dbargs = (map { my $name = $_->{name};
                        $name =~ s/^in_//i;
                        $name eq 'self'? $self : $args{args}->{$name} ;
                } @{$funcinfo->{args}});
-    return PGObject->call_procedure(%args, ( args => \@dbargs ));
+    my @rows = PGObject->call_procedure(%args, ( args => \@dbargs ));
+    return shift @rows unless wantarray;
+    return @rows;
 } 
 
 =head2 call_procedure
