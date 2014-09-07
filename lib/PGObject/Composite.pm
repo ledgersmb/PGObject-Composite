@@ -1,6 +1,6 @@
 package PGObject::Composite;
 
-use 5.006;
+use 5.008;
 use strict;
 use warnings FATAL => 'all';
 
@@ -62,13 +62,41 @@ Calls a mapped method with the current object as the argument named "self."
 This allows for stored procedurs to differentiate what is related to a related
 type and what is not.
 
-=cuty
+=cut
+
+my %default = (
+    funcschema => 'public',
+    funcprefix => '',
+    registry   => 'default',    
+);
+
+sub _build_args {
+    my ($self, $args) = @_;
+    my %args = (map {
+                      my $funcname = "_get_$_";
+                      eval { $self->can($funcname) } ?
+                         $_ => $self->$funcname() :
+                         $_ => $defaults($_);
+                } qw(funcschema dbh funcprefix registry typename typeschema)
+                , %$args);
+    return %args;
+}
 
 sub call_dbmethod {
     my $self = shift;
     my %args = @_;
+    my %args = _build_args($self, \%args);
 
-}
+    my $funcinfo = PGObject::function_info(
+               %args, (argtype1 => $args{typename}, 
+                      argschema => $args{typeschema}
+    );
+    my @dbargs = ($self, map { $name = $_->{name};
+                       $name =~ s/^in_//i;
+                       $name eq 'self'? $self : $args{args}->{$name} ;
+               } @{$funcinfo->{args}});
+    return PGObject::call_procedure(%args, ( args => \@dbargs ));
+} 
 
 =head2 call_procedure
 
@@ -76,17 +104,34 @@ Maps to PGObject::call_procedure with appropriate defaults.
 
 =cut
 
+sub call_procedure {
+    my ($self) = shift @_;
+    my %args = @_;
+    my %args = _build_args($self, \%args);
 
+    croak 'No DB handle provided' unless $args{dbh};
+    my @rows = PGObject->call_procedure(%args);
+    return shift @rows unless wantarray;
+    return @rows;
+}
 
 =head1 INTERFACES TO OVERRIDE
 
 =head2 _get_schema
 
+Defaults to public.  This is the type's schema
+
 =head2 _get_funcschema
+
+defaults to public.
 
 =head2 _get_typename
 
+The name of the composite type.  Must be set.
+
 =head2 _get_dbh
+
+The database connection to use.  Must be set.
 
 =head1 AUTHOR
 
