@@ -4,6 +4,7 @@ use 5.008;
 use strict;
 use warnings FATAL => 'all';
 
+use Carp;
 use PGObject;
 use PGObject::Type::Composite;
 
@@ -64,7 +65,7 @@ type and what is not.
 
 =cut
 
-my %default = (
+my %defaults = (
     funcschema => 'public',
     funcprefix => '',
     registry   => 'default',    
@@ -75,8 +76,8 @@ sub _build_args {
     my %args = (map {
                       my $funcname = "_get_$_";
                       eval { $self->can($funcname) } ?
-                         $_ => $self->$funcname() :
-                         $_ => $defaults($_);
+                         ($_ => $self->$funcname()) :
+                         ($_ => $defaults{$_});
                 } qw(funcschema dbh funcprefix registry typename typeschema)
                 , %$args);
     return %args;
@@ -85,17 +86,17 @@ sub _build_args {
 sub call_dbmethod {
     my $self = shift;
     my %args = @_;
-    my %args = _build_args($self, \%args);
+    %args = _build_args($self, \%args);
 
-    my $funcinfo = PGObject::function_info(
+    my $funcinfo = PGObject->function_info(
                %args, (argtype1 => $args{typename}, 
-                      argschema => $args{typeschema}
+                      argschema => $args{typeschema})
     );
-    my @dbargs = ($self, map { $name = $_->{name};
+    my @dbargs = ($self, map { my $name = $_->{name};
                        $name =~ s/^in_//i;
                        $name eq 'self'? $self : $args{args}->{$name} ;
                } @{$funcinfo->{args}});
-    return PGObject::call_procedure(%args, ( args => \@dbargs ));
+    return PGObject->call_procedure(%args, ( args => \@dbargs ));
 } 
 
 =head2 call_procedure
@@ -107,7 +108,7 @@ Maps to PGObject::call_procedure with appropriate defaults.
 sub call_procedure {
     my ($self) = shift @_;
     my %args = @_;
-    my %args = _build_args($self, \%args);
+    %args = _build_args($self, \%args);
 
     croak 'No DB handle provided' unless $args{dbh};
     my @rows = PGObject->call_procedure(%args);
