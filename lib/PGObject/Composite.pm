@@ -1,12 +1,15 @@
 package PGObject::Composite;
 
-use 5.008;
+use 5.010;
 use strict;
 use warnings FATAL => 'all';
 
 use Carp;
 use PGObject;
-use PGObject::Type::Composite;
+use parent 'Exporter', 'PGObject::Type::Composite';
+
+our @EXPORT_OK = qw(call_procedure to_db from_db call_ebmethod);
+our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 =head1 NAME
 
@@ -14,11 +17,11 @@ PGObject::Composite - Composite Type Mapper for PGObject
 
 =head1 VERSION
 
-Version 0.02
+Version 1
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = 1.000000;
 
 
 =head1 SYNOPSIS
@@ -56,6 +59,107 @@ We can have a package:
 
 =head1 SUBROUTINES/METHODS
 
+=head2 new
+
+This constructs a new object.  Basically it copies the incoming hash (one level
+deep) and then blesses it.  If the hash passed in has a dbh member, the dbh 
+is set to that.  This does not set the function prefix, as this is assumed to 
+be done implicitly by subclasses.
+
+=cut
+
+sub new {
+    my ($self) = shift @_;
+    my %args = @_;
+    my $ref = {};
+    $ref->{$_} = $args{$_} for keys %args;
+    bless ($ref, $self);
+    $ref->set_dbh($ref->{dbh});
+    $ref->_set_funcprefix($ref->{_funcprefix});
+    $ref->_set_funcschema($ref->{_funcschema});
+    $ref->_set_registry($ref->{_registry});
+    $ref->associate($self) if ref $self;
+    return $ref;
+}
+
+sub _set_funcprefix {
+    my ($self, $prefix) = @_;
+    $self->{_funcprefix} = $prefix;
+}
+
+sub _set_funcschema {
+    my ($self, $schema) = @_;
+    $self->{_funcschema} = $schema;
+}
+
+sub _set_registry {
+    my ($self, $registry) = @_;
+    $self->{_registry} = $registry;
+}
+
+sub _set_dbh {
+    my ($self, $dbh) = @_;
+    $self->{_dbh} = $dbh;
+}
+
+sub _get_dbh {
+    my ($self) = $_;
+    return $self->{_dbh} if ref $self and $self->{_dbh};
+    return "$self"->default_dbh;
+}
+
+=head2 default_dbh
+
+returns the dbh used by default.  Subclasses must override.
+
+=cut
+
+sub default_dbh {
+    croak 'Must override default dbh factory';
+}
+
+sub _get_funcschema {
+    my ($self) = @_;
+    return $self->{_funcschema} if ref $self;
+    return "$self"->default_schema;
+}
+
+=head2 default_schema
+
+returns the schema used by default.  defaalt is 'public'
+
+=cut
+
+sub default_schema { 'public' }
+
+sub _get_funcprefix {
+    my ($self) = @_;
+    return $self->{_funcprefix} if ref $self;
+    return "$self"->default_prefix;
+}
+
+=head2 default_prefix
+
+returns the prefix used by default.  Default is empty string
+
+=cut
+
+sub default_prefix { '' }
+
+sub _get_registry {
+    my ($self) = @_;
+    return $self->{_registry} if ref $self;
+    return "$self"->default_registry;
+}
+
+=head2 default_registry
+
+Returns the registry used by default.  Default is 'default'
+
+=cut
+
+sub default_registry { 'default' }
+
 =head2 call_dbmethod
 
 Calls a mapped method with the current object as the argument named "self."
@@ -65,20 +169,13 @@ type and what is not.
 
 =cut
 
-my %defaults = (
-    funcschema => 'public',
-    funcprefix => '',
-    registry   => 'default',    
-);
-
 sub _build_args {
     my ($self, $args) = @_;
-    my %args = ((map {
-                      my $funcname = "_get_$_";
-                      eval { $self->can($funcname) } ?
-                         ($_ => $self->$funcname()) :
-                         ($_ => $defaults{$_});
-                } qw(funcschema dbh funcprefix registry typename typeschema))
+    my %args;
+    %args = ((map {
+                 $_ => (ref $self ? $self->$_ : "$self"->$_ )
+               } map { "_get_$_" } 
+               qw(funcschema dbh funcprefix registry typename typeschema))
                 , %$args);
     return %args;
 }
