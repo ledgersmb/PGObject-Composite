@@ -97,14 +97,48 @@ sub _set_registry {
     $self->{_registry} = $registry;
 }
 
-sub _set_dbh {
+=head2 set_dbh
+
+Sets the database handle
+
+=cut
+
+sub set_dbh {
     my ($self, $dbh) = @_;
     $self->{_dbh} = $dbh;
 }
 
+sub _set_dbh {
+    my ($self, $dbh) = @_;
+    $self->set_dbh($dbh);
+}
+
+=head2 dbh
+
+returns the dbh of the object
+
+=cut
+
+sub dbh {
+    my ($self) = @_;
+    return $self->_get_dbh;
+}
+
+=head2 associate
+
+Assocates the current object with another PGObject-based class
+
+=cut
+
+sub associate {
+    my ($self, $other) = @_;
+    $self->set_dbh($other->dbh);
+}
+
 sub _get_dbh {
-    my ($self) = $_;
+    my ($self) = @_;
     return $self->{_dbh} if ref $self and $self->{_dbh};
+    return $self->default_dbh if ref $self;
     return "$self"->default_dbh;
 }
 
