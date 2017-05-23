@@ -11,14 +11,7 @@ perl:
 addons:
    postgresql: "9.3"
 env:
-  - DB_TESTING: 1
+  - DB_TESTING=1 COVERAGE=1 RELEASE_TESTING=1
 before_install:
-   - "cpanm DBI"
-   - "cpanm DBD::Pg"
-   - "cpanm Try::Tiny"
-   - "cpanm PGObject"
-   - "cpanm PGObject::Type::Composite"
-   - "cpanm Test::More"
-   - "cpanm Devel::Cover::Report::Coveralls"
-script:
-   export RELEASE_TESTING=1 && perl Makefile.PL && make test && cover -test -report coveralls
+   - eval $(curl https://travis-perl.github.io/init) --auto
+
