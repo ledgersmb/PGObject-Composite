@@ -142,13 +142,6 @@ sub associate {
     $self->set_dbh($other->dbh);
 }
 
-sub _get_dbh {
-    my ($self) = @_;
-    return $self->{_dbh} if ref $self and $self->{_dbh};
-    return $self->default_dbh if ref $self;
-    return "$self"->default_dbh;
-}
-
 =head2 default_dbh
 
 returns the dbh used by default.  Subclasses must override.
