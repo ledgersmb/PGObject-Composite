@@ -124,6 +124,13 @@ sub dbh {
     return $self->_get_dbh;
 }
 
+sub _get_dbh {
+    my ($self) = @_;
+    return $self->{_dbh} if ref $self and $self->{_dbh};
+    return $self->default_dbh if ref $self;
+    return "$self"->default_dbh;
+}
+
 =head2 associate
 
 Assocates the current object with another PGObject-based class
