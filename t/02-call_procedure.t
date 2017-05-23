@@ -62,7 +62,7 @@ my $answer = 72;
 
 SKIP: {
    skip 'No database connection', 8 unless $dbh;
-   my $obj = PGObject::Composite->dbtest(%hash);
+   my $obj = dbtest->new(%hash);
    $obj->set_dbh($dbh);
    my ($ref) = $obj->call_procedure(
       funcname => 'foobar',
