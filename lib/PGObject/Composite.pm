@@ -154,7 +154,8 @@ sub default_dbh {
 
 sub _get_funcschema {
     my ($self) = @_;
-    return $self->{_funcschema} if ref $self;
+    return $self->{_funcschema} if ref $self and $self->{_funcschema};
+    return $self->default_schema if ref $self;
     return "$self"->default_schema;
 }
 
@@ -168,7 +169,8 @@ sub default_schema { 'public' }
 
 sub _get_funcprefix {
     my ($self) = @_;
-    return $self->{_funcprefix} if ref $self;
+    return $self->{_funcprefix} if ref $self and $self->{_funcprefix};
+    return $self->default_prefix;
     return "$self"->default_prefix;
 }
 
@@ -182,7 +184,8 @@ sub default_prefix { '' }
 
 sub _get_registry {
     my ($self) = @_;
-    return $self->{_registry} if ref $self;
+    return $self->{_registry} if ref $self and $self->{_registry};
+    return $self->default_registry if ref $self;
     return "$self"->default_registry;
 }
 
@@ -205,12 +208,14 @@ type and what is not.
 
 sub _build_args {
     my ($self, $args) = @_;
+    delete $args->{$_} for qw(typename typeschema); # invariants
     my %args;
-    %args = ((map {
-                 $_ => (ref $self ? $self->$_ : "$self"->$_ )
-               } map { "_get_$_" } 
-               qw(funcschema dbh funcprefix registry typename typeschema))
-                , %$args);
+    %args = (map {
+                 my $f = "_get_$_";
+                 $_ => (ref $self ? $self->$f() : "$self"->$f() )
+               }  
+               qw(funcschema dbh funcprefix registry typename typeschema));
+    %args = (%args, %$args) if ref $args;
     return %args;
 }
 

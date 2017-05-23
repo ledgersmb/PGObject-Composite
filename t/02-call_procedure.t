@@ -66,10 +66,11 @@ SKIP: {
    $obj->set_dbh($dbh);
    is($obj->dbh, $dbh, 'DBH set');
    is($obj->_get_dbh, $dbh, 'DBH set, internal accessor');
-   is_deeply($obj->_build_args(), {dbh => $dbh, funcschema => 'public', funcprefix => ''}, 'Args set, defaults');
-   is_deeply($obj->_build_args({funcschema => 'test', registry => 'foo', funcprefix => 'tttt'}), {}, 'Args set, overrides');
+   is_deeply({$obj->_build_args()}, {dbh => $dbh, funcschema => 'public', funcprefix => '', registry => 'default', typeschema => 'public', typename => 'foobar'}, 'Args set, defaults');
+   is_deeply({$obj->_build_args({funcschema => 'test', registry => 'foo', funcprefix => 'tttt'})}, {funcschema => 'test', registry => 'foo', funcprefix => 'tttt', typename => 'foobar', typeschema => 'public', dbh => $dbh}, 'Args set, overrides');
    my ($ref) = $obj->call_procedure(
       funcname => 'foobar',
+      args => [$obj]
    );
    is ($ref->{foobar}, 159, 'Correct value returned, call_procedure') or diag Dumper($ref);
 
