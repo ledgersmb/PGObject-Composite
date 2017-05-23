@@ -1,5 +1,8 @@
 package dbtest;
 use parent 'PGObject::Composite';
+
+sub _type_name { 'foobar' };
+sub _type_schema { 'public' };
 sub dbh {
     my ($self) = @_;
     return $self->SUPER::dbh(@_) if ref $self;
@@ -36,18 +39,22 @@ $dbh1->do('CREATE DATABASE pgobject_test_db') if $dbh1;
 
 our $dbh = DBI->connect('dbi:Pg:dbname=pgobject_test_db', 'postgres');
 $dbh->do('
-   CREATE FUNCTION public.foobar (in_foo text, in_bar text, in_baz int, in_id int)
+   CREATE TYPE foo as ( foo text, bar text, baz int, id int )
+   ') if $dbh;
+
+$dbh->do('
+   CREATE FUNCTION public.foobar(in_self foo)
       RETURNS int language sql as $$
-          SELECT char_length($1) + char_length($2) + $3 * $4;
+          SELECT char_length($1.foo) + char_length($1.bar) + $1.baz * $1.id;
       $$;
 ') if $dbh;
 
-$dbh->do('CREATE SCHEMA test;');
+$dbh->do('CREATE SCHEMA test;') if $dbh;
 
 $dbh->do('
-   CREATE FUNCTION test.foobar (in_foo text, in_bar text, in_baz int, in_id int)
+   CREATE FUNCTION test.foobar (in_self public.foo)
       RETURNS int language sql as $$
-          SELECT 2 * (char_length($1) + char_length($2) + $3 * $4);
+          SELECT 2 * (char_length($1.foo) + char_length($1.bar) + $1.baz * $1.id);
       $$;
 ') if $dbh;
 
@@ -55,11 +62,10 @@ my $answer = 72;
 
 SKIP: {
    skip 'No database connection', 8 unless $dbh;
-   my $obj = PGObject::Composite->new(%hash);
+   my $obj = PGObject::Composite->dbtest(%hash);
    $obj->set_dbh($dbh);
    my ($ref) = $obj->call_procedure(
       funcname => 'foobar',
-      args => ['text', 'text2', '5', '30']
    );
    is ($ref->{foobar}, 159, 'Correct value returned, call_procedure') or diag Dumper($ref);
 
