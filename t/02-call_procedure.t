@@ -32,7 +32,7 @@ my %hash = (
 );
 
 plan skip_all => 'Not set up for db tests' unless $ENV{DB_TESTING};
-plan tests => 13;
+plan tests => 14;
 my $dbh1 = DBI->connect('dbi:Pg:dbname=postgres', 'postgres');
 $dbh1->do('CREATE DATABASE pgobject_test_db') if $dbh1;
 
@@ -61,11 +61,13 @@ $dbh->do('
 my $answer = 72;
 
 SKIP: {
-   skip 'No database connection', 10 unless $dbh;
+   skip 'No database connection', 11 unless $dbh;
    my $obj = dbtest->new(%hash);
    $obj->set_dbh($dbh);
    is($obj->dbh, $dbh, 'DBH set');
    is($obj->_get_dbh, $dbh, 'DBH set, internal accessor');
+   is_deeply($obg->_build_args(), {dbh => $dbh, funcschema => 'public', funcprefix => ''}}, 'Args set, defaults');
+   is_deeply($obg->_build_args({funcschema => 'test', registry => 'foo', funcprefix => 'tttt'}), {}, 'Args set, overrides');
    my ($ref) = $obj->call_procedure(
       funcname => 'foobar',
    );
