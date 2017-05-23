@@ -66,8 +66,8 @@ SKIP: {
    $obj->set_dbh($dbh);
    is($obj->dbh, $dbh, 'DBH set');
    is($obj->_get_dbh, $dbh, 'DBH set, internal accessor');
-   is_deeply($obg->_build_args(), {dbh => $dbh, funcschema => 'public', funcprefix => ''}, 'Args set, defaults');
-   is_deeply($obg->_build_args({funcschema => 'test', registry => 'foo', funcprefix => 'tttt'}), {}, 'Args set, overrides');
+   is_deeply($obj->_build_args(), {dbh => $dbh, funcschema => 'public', funcprefix => ''}, 'Args set, defaults');
+   is_deeply($obj->_build_args({funcschema => 'test', registry => 'foo', funcprefix => 'tttt'}), {}, 'Args set, overrides');
    my ($ref) = $obj->call_procedure(
       funcname => 'foobar',
    );
