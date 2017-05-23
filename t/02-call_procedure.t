@@ -1,8 +1,8 @@
 package dbtest;
 use parent 'PGObject::Composite';
 
-sub _type_name { 'foobar' };
-sub _type_schema { 'public' };
+sub _get_typename { 'foobar' };
+sub _get_typeschema { 'public' };
 sub dbh {
     my ($self) = @_;
     return $self->SUPER::dbh(@_) if ref $self;
