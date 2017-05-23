@@ -64,6 +64,7 @@ SKIP: {
    skip 'No database connection', 8 unless $dbh;
    my $obj = dbtest->new(%hash);
    $obj->set_dbh($dbh);
+   is($obj->dbh, $dbh, 'DBH set');
    my ($ref) = $obj->call_procedure(
       funcname => 'foobar',
    );
