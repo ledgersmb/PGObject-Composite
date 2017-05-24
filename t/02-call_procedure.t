@@ -1,11 +1,15 @@
 package dbtest;
 use parent 'PGObject::Composite';
 
-sub _get_typename { 'foobar' };
+sub _get_typename { 'foo' };
 sub _get_typeschema { 'public' };
 sub dbh {
     my ($self) = @_;
     return $self->SUPER::dbh(@_) if ref $self;
+    return $main::dbh;
+}
+
+sub default_dbh {
     return $main::dbh;
 }
 
@@ -32,14 +36,14 @@ my %hash = (
 );
 
 plan skip_all => 'Not set up for db tests' unless $ENV{DB_TESTING};
-plan tests => 14;
+plan tests => 10;
 my $dbh1 = DBI->connect('dbi:Pg:dbname=postgres', 'postgres');
 $dbh1->do('CREATE DATABASE pgobject_test_db') if $dbh1;
 
 
 our $dbh = DBI->connect('dbi:Pg:dbname=pgobject_test_db', 'postgres');
 $dbh->do('
-   CREATE TYPE foo as ( foo text, bar text, baz int, id int )
+   CREATE TYPE public.foo as ( foo text, bar text, baz int, id int )
    ') if $dbh;
 
 $dbh->do('
@@ -61,76 +65,36 @@ $dbh->do('
 my $answer = 72;
 
 SKIP: {
-   skip 'No database connection', 11 unless $dbh;
+   skip 'No database connection', 7 unless $dbh;
+   my @cols = dbtest->initialize(dbh => $dbh);
+   ok(scalar @cols, 'Have 1 or more columns');
    my $obj = dbtest->new(%hash);
    $obj->set_dbh($dbh);
+   ok($obj->can('to_db'), 'can serialize self to db');
    is($obj->dbh, $dbh, 'DBH set');
    is($obj->_get_dbh, $dbh, 'DBH set, internal accessor');
-   is_deeply({$obj->_build_args()}, {dbh => $dbh, funcschema => 'public', funcprefix => '', registry => 'default', typeschema => 'public', typename => 'foobar'}, 'Args set, defaults');
-   is_deeply({$obj->_build_args({funcschema => 'test', registry => 'foo', funcprefix => 'tttt'})}, {funcschema => 'test', registry => 'foo', funcprefix => 'tttt', typename => 'foobar', typeschema => 'public', dbh => $dbh}, 'Args set, overrides');
+   is_deeply({$obj->_build_args()}, {dbh => $dbh, funcschema => 'public', funcprefix => '', registry => 'default', typeschema => 'public', typename => 'foo'}, 'Args set, defaults');
+   is_deeply({$obj->_build_args({funcschema => 'test', registry => 'foo', funcprefix => 'tttt'})}, {funcschema => 'test', registry => 'foo', funcprefix => 'tttt', typename => 'foo', typeschema => 'public', dbh => $dbh}, 'Args set, overrides');
    my ($ref) = $obj->call_procedure(
       funcname => 'foobar',
       args => [$obj]
    );
-   is ($ref->{foobar}, 159, 'Correct value returned, call_procedure') or diag Dumper($ref);
+   is ($ref->{foobar}, 72, 'Correct value returned, call_procedure') or diag Dumper($ref);
 
-   ($ref) = PGObject::Composite->call_procedure(
+   ($ref) = dbtest->call_procedure(
       dbh => $dbh,
       funcname => 'foobar',
-      args => ['text', 'text2', '5', '30']
+      args => [$obj],
    );
-   is ($ref->{foobar}, 159, 'Correct value returned, call_procedure, package invocation') or diag Dumper($ref);
+   is ($ref->{foobar}, 72, 'Correct value returned, call_procedure, package invocation') or diag Dumper($ref);
 
-   ($ref) = dbtest->call_procedure(funcname => 'foobar', 
-	   args => ['text', 'text2', '5', '30']
-   );
-   is ($ref->{foobar}, 159, 'Correct value returned, package invocation with factories') or diag Dumper($ref);
-
-
-   ($ref) = $obj->call_procedure(
-      funcname => 'foobar',
-      funcschema => 'public',
-      args => ['text1', 'text2', '5', '30']
-   );
-
-   is ($ref->{foobar}, 160, 'Correct value returned, call_procedure w/schema') or diag Dumper($ref);
 
    ($ref) = $obj->call_dbmethod(
       funcname => 'foobar'
    );
 
    is ($ref->{foobar}, $answer, 'Correct value returned, call_dbmethod') or diag Dumper($ref);
-   ($ref) = PGObject::Composite->call_dbmethod(
-      funcname => 'foobar',
-          args => \%hash,
-           dbh => $dbh,
-   );
-   is ($ref->{foobar}, $answer, 'Correct value returned, call_dbmethodi with hash and no ref') or diag Dumper($ref);
        
-   ($ref) = dbtest->call_dbmethod(funcname => 'foobar', 
-	   args => \%hash
-   );
-   is ($ref->{foobar}, $answer, 'Correct value returned, package invocation with factories and dbmethod') or diag Dumper($ref);
-
-
-   ($ref) = $obj->call_dbmethod(
-      funcname => 'foobar',
-      args     => {id => 4}
-   );
-
-   is ($ref->{foobar}, 14, 'Correct value returned, call_dbmethod w/args') or diag Dumper($ref);
-   $obj->_set_funcprefix('foo');
-   ($ref) = ($ref) = $obj->call_dbmethod(
-      funcname => 'bar',
-      args     => {id => 4}
-   );
-   is ($ref->{foobar}, 14, 'Correct value returned, call_dbmethod w/args/prefix') or diag Dumper($ref);
-   ($ref) = ($ref) = $obj->call_dbmethod(
-      funcname => 'oobar',
-      args     => {id => 4},
-    funcprefix => 'f'
-   );
-   is ($ref->{foobar}, 14, 'Correct value returned, call_dbmethod w/exp. pre.') or diag Dumper($ref);
 
    $obj->_set_funcschema('test');
    $obj->_set_funcprefix('');

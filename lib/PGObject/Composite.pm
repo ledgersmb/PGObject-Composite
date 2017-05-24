@@ -6,6 +6,7 @@ use warnings FATAL => 'all';
 
 use Carp;
 use PGObject;
+use PGObject::Type::Composite; # needed to import routines
 use parent 'Exporter', 'PGObject::Type::Composite';
 
 our @EXPORT_OK = qw(call_procedure to_db from_db call_ebmethod);
@@ -172,6 +173,18 @@ sub _get_funcprefix {
     return $self->{_funcprefix} if ref $self and $self->{_funcprefix};
     return $self->default_prefix;
     return "$self"->default_prefix;
+}
+
+sub _get_schema {
+    my ($self) = @_;
+    return $self->{_funcprefix} if ref $self and $self->{_funcprefix};
+    return $self->default_schema;
+    return "$self"->default_schema;
+}
+
+sub _set_schema {
+    my ($self, $schema);
+    $self->{_schema} = $schema;
 }
 
 =head2 default_prefix
