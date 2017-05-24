@@ -9,8 +9,15 @@ use PGObject;
 use PGObject::Type::Composite; # needed to import routines
 use parent 'Exporter', 'PGObject::Type::Composite';
 
-our @EXPORT_OK = qw(call_procedure to_db from_db call_ebmethod);
-our %EXPORT_TAGS = (all => \@EXPORT_OK);
+our @EXPORT_OK = qw(call_procedure to_db from_db call_dbmethod
+                   _get_dbh _get_funcschema _get_funcprefix _get_schema
+                   _get_registry _get_typename _get_typeschema
+                   default_dbh default_schema default_prefix default_registry);
+our %EXPORT_TAGS = (all => \@EXPORT_OK,
+                    mapper => [qw{call_procedure to_db from_db call_dbmethod
+                                 default_dbh default_schema default_prefix
+                                 default_registry}],
+                   );
 
 =head1 NAME
 
@@ -18,11 +25,11 @@ PGObject::Composite - Composite Type Mapper for PGObject
 
 =head1 VERSION
 
-Version 1
+Version 1.0.2
 
 =cut
 
-our $VERSION = 1.000000;
+our $VERSION = 1.000002;
 
 
 =head1 SYNOPSIS
@@ -182,6 +189,14 @@ sub _get_schema {
     return "$self"->default_schema;
 }
 
+sub _get_typeschema {
+    my ($self) = @_;
+    return $self->{_funcprefix} if ref $self and $self->{_funcprefix};
+    return $self->default_schema;
+    return "$self"->default_schema;
+}
+    
+
 sub _set_schema {
     my ($self, $schema);
     $self->{_schema} = $schema;
@@ -266,6 +281,7 @@ sub call_procedure {
     return shift @rows unless wantarray;
     return @rows;
 }
+
 
 =head1 INTERFACES TO OVERRIDE
 
