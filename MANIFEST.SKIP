@@ -38,7 +38,9 @@
 ^work
 ^tmp
 \bTAGS$
+^.travis.yml$
 ^MYMETA.yml$
+^MYMETA.json$
 
 \bSu-[\d\.\_]+
 
