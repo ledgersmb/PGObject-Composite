@@ -9,8 +9,13 @@ use PGObject;
 use PGObject::Type::Composite; # needed to import routines
 use parent 'Exporter', 'PGObject::Type::Composite';
 
-our @EXPORT_OK = qw(call_procedure to_db from_db call_ebmethod);
-our %EXPORT_TAGS = (all => \@EXPORT_OK);
+our @EXPORT_OK = qw(call_procedure to_db from_db call_ebmethod
+                   _get_dbh _get_funcschema _get_funcprefix _get_fypeschema
+                   _get_typename default_dbh default_schema default_prefix);
+our %EXPORT_TAGS = (all => \@EXPORT_OK,
+                    mapper => [qw{call_procedure to_db from_db call_ebmethod
+                                 default_dbh default_schema default_prefix}],
+                   );
 
 =head1 NAME
 
@@ -18,11 +23,11 @@ PGObject::Composite - Composite Type Mapper for PGObject
 
 =head1 VERSION
 
-Version 1
+Version 1.0.1
 
 =cut
 
-our $VERSION = 1.000000;
+our $VERSION = 1.000001;
 
 
 =head1 SYNOPSIS
